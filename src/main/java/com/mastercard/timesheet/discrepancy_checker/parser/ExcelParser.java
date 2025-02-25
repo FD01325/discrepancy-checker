@@ -117,10 +117,11 @@ public class ExcelParser {
 
             String mcId = normalizeMcId(getCellValue(row.getCell(8))); // Column I for MC ID
             String employeeName = getCellValue(row.getCell(1));  // Column B for Employee Name
+            String timesheetDate = getCellValue(row.getCell(9));  // Column J for Timesheet Date
             double totalUnits = parseDouble(getCellValue(row.getCell(6))); // Column G for Units
 
             if (!mcId.isEmpty()) {
-                employeeDataList.add(new BeelineTimesheetEntry(mcId, employeeName, totalUnits));
+                employeeDataList.add(new BeelineTimesheetEntry(mcId, employeeName, timesheetDate, totalUnits));
             }
         }
         workbook.close();

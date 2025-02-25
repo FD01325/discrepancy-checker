@@ -3,11 +3,13 @@ package com.mastercard.timesheet.discrepancy_checker.model;
 public class BeelineTimesheetEntry {
     private String mcId;
     private String employeeName;
+    private String timesheetDate;
     private double units;
 
-    public BeelineTimesheetEntry(String mcId, String employeeName, double units) {
+    public BeelineTimesheetEntry(String mcId, String employeeName, String timesheetDate, double units) {
         this.mcId = mcId;
         this.employeeName = employeeName;
+        this.timesheetDate = timesheetDate;
         this.units = units;
     }
 
@@ -31,6 +33,14 @@ public class BeelineTimesheetEntry {
         this.employeeName = employeeName;
     }
 
+    public String getTimesheetDate() {
+        return timesheetDate;
+    }
+
+    public void setTimesheetDate(String timesheetDate) {
+        this.timesheetDate = timesheetDate;
+    }
+
     public double getUnits() {
         return units;
     }
@@ -42,8 +52,9 @@ public class BeelineTimesheetEntry {
     @Override
     public String toString() {
         return "BeelineTimesheetEntry{" +
-                "employeeId='" + mcId + '\'' +
+                "mcId='" + mcId + '\'' +
                 ", employeeName='" + employeeName + '\'' +
+                ", timesheetDate='" + timesheetDate + '\'' +
                 ", units=" + units +
                 '}';
     }
