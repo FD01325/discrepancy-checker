@@ -3,6 +3,7 @@ package com.mastercard.timesheet.discrepancy_checker.controller;
 import com.mastercard.timesheet.discrepancy_checker.model.Discrepancy;
 import com.mastercard.timesheet.discrepancy_checker.service.TimesheetService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,29 +23,16 @@ public class TimesheetController {
      * and generate the discrepancy report.
      */
     @PostMapping("/compare")
-    public ResponseEntity<?> compareTimesheets(
+    public ResponseEntity<byte[]> compareTimesheets(
             @RequestParam("prismFile") MultipartFile prismFile,
-            @RequestParam("beelineFile") MultipartFile beelineFile) {
+            @RequestParam("beelineFile") MultipartFile beelineFile) throws Exception {
+        byte[] fileContent = timesheetService.processTimesheets(prismFile, beelineFile);
 
-        if (prismFile.isEmpty() || beelineFile.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "message", "All two files (Prism and Beeline) are required."
-            ));
-        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=discrepancies.xlsx");
+        headers.add(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
-        try {
-            List<Discrepancy> discrepancies = timesheetService.processTimesheets(prismFile, beelineFile);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", discrepancies.isEmpty() ? "No discrepancies found." : "Discrepancy report generated.",
-                    "discrepancyCount", discrepancies.size(),
-                    "discrepancies", discrepancies
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of(
-                    "message", "An error occurred while processing the timesheets.",
-                    "error", e.getMessage()
-            ));
-        }
+        // Return the Excel file as a response
+        return ResponseEntity.ok().headers(headers).body(fileContent);
     }
 }

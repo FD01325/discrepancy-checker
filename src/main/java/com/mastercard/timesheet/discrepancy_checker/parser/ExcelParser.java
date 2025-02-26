@@ -1,7 +1,10 @@
 package com.mastercard.timesheet.discrepancy_checker.parser;
 
 import com.mastercard.timesheet.discrepancy_checker.model.BeelineTimesheetEntry;
+import com.mastercard.timesheet.discrepancy_checker.model.Discrepancy;
 import com.mastercard.timesheet.discrepancy_checker.model.PrismTimesheetEntry;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.poi.ss.usermodel.*;
@@ -11,59 +14,44 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 
 @Component
 public class ExcelParser {
 
+    private static final String EMPLOYEE_MAPPING_FILE_PATH = "src/main/resources/EmployeeMapping.xlsx";
+
     /**
      * Load Employee Mapping from "EmployeeMapping.xlsx".
-     * @param file The Excel file containing Employee Mapping.
      * @return Map<ResourceName, FD_EID/MC_EID>
      */
-    public static Map<String, String> loadEmployeeMapping(File file) throws Exception {
+    public static Map<String, String> loadEmployeeMapping() throws Exception {
         Map<String, String> employeeMap = new HashMap<>();
-        FileInputStream fis = new FileInputStream(file);
+        FileInputStream fis = new FileInputStream(EMPLOYEE_MAPPING_FILE_PATH);
         Workbook workbook = new XSSFWorkbook(fis);
 
-        // Read "FFS List" sheet (FD EID)
-        Sheet ffsSheet = workbook.getSheet("FFS List");
-        if (ffsSheet == null) {
-            throw new RuntimeException("FFS List sheet not found in EmployeeMapping.xlsx");
-        }
+        Sheet mappingSheet = workbook.getSheet("Sheet1");
 
-        Map<String, String> fdEidMap = new HashMap<>();
-        Iterator<Row> rowIterator = ffsSheet.iterator();
-        rowIterator.next(); // Skip header row
+        for (int i = 1; i <= mappingSheet.getLastRowNum(); i++) {
+            Row row = mappingSheet.getRow(i);
 
-        while (rowIterator.hasNext()) {
-            Row row = rowIterator.next();
-            String resourceName = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim();
-            String fdEid = row.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim();
-            if (!resourceName.isEmpty() && !fdEid.isEmpty()) {
-                fdEidMap.put(resourceName, fdEid);
-            }
-        }
+            // Skip empty rows
+            if (row == null) continue;
 
-        // Read "MC List" sheet (MC EID)
-        Sheet mcSheet = workbook.getSheet("MC List");
-        if (mcSheet == null) {
-            throw new RuntimeException("MC List sheet not found in EmployeeMapping.xlsx");
-        }
+            // Assuming the first column (index 0) is the key and the second column (index 1) is the value
+            Cell keyCell = row.getCell(2);
+            Cell valueCell = row.getCell(3);
 
-        rowIterator = mcSheet.iterator();
-        rowIterator.next(); // Skip header row
+            // If both key and value cells are not null, add them to the map
+            if (keyCell != null && valueCell != null) {
+                String key = keyCell.getStringCellValue();
+                String value = valueCell.getStringCellValue();
 
-        while (rowIterator.hasNext()) {
-            Row row = rowIterator.next();
-            String resourceName = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim();
-            String mcEid = row.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim();
-
-            if (!resourceName.isEmpty() && !mcEid.isEmpty() && fdEidMap.containsKey(resourceName)) {
-                String fdEid = fdEidMap.get(resourceName);
-                employeeMap.put(resourceName, mcEid); // Map ResourceName → MC EID
-                employeeMap.put(fdEid, mcEid); // Map FD EID → MC EID for easy lookup
+                // Add to the Map
+                employeeMap.put(key, value);
             }
         }
 
@@ -77,8 +65,10 @@ public class ExcelParser {
      * @param prismFile MultipartFile representing the Prism Timesheet.
      * @return List of EmployeeData from the Prism Timesheet.
      */
-    public List<PrismTimesheetEntry> parsePrismTimesheet(MultipartFile prismFile) throws IOException {
-        List<PrismTimesheetEntry> employeeDataList = new ArrayList<>();
+    public Map<String, MultiValuedMap<String, PrismTimesheetEntry>> parsePrismTimesheet(MultipartFile prismFile) throws IOException {
+//        List<PrismTimesheetEntry> employeeDataList = new ArrayList<>();
+
+        Map<String, MultiValuedMap<String, PrismTimesheetEntry>> prismEmployeeData = new HashMap<>();
         Workbook workbook = WorkbookFactory.create(prismFile.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
 
@@ -92,12 +82,22 @@ public class ExcelParser {
             String typeOfHours = getCellValue(row.getCell(17)); // Column R for Type of Hours
             double totalHours = parseDouble(getCellValue(row.getCell(18))); // Column S for Total Hours
 
-            if (!fdId.isEmpty()) {
-                employeeDataList.add(new PrismTimesheetEntry(fdId, timesheetDate, employeeName, typeOfHours, totalHours));
+//            if (!fdId.isEmpty()) {
+//                employeeDataList.add(new PrismTimesheetEntry(fdId, timesheetDate, employeeName, typeOfHours, totalHours));
+//            }
+            PrismTimesheetEntry prismTimesheetEntry = new PrismTimesheetEntry(fdId, timesheetDate, employeeName, typeOfHours, totalHours);
+            if(prismEmployeeData.containsKey(fdId)) {
+                MultiValuedMap<String, PrismTimesheetEntry> timesheetData = prismEmployeeData.get(fdId);
+                timesheetData.put(timesheetDate, prismTimesheetEntry);
+                prismEmployeeData.put(fdId, timesheetData);
+            } else {
+                MultiValuedMap<String, PrismTimesheetEntry> timesheetData = new ArrayListValuedHashMap<>();
+                timesheetData.put(timesheetDate, prismTimesheetEntry);
+                prismEmployeeData.put(fdId, timesheetData);
             }
         }
         workbook.close();
-        return employeeDataList;
+        return prismEmployeeData;
     }
 
     /**
@@ -106,8 +106,8 @@ public class ExcelParser {
      * @param beelineFile MultipartFile representing the Beeline Timesheet.
      * @return List of EmployeeData from the Beeline Timesheet.
      */
-    public List<BeelineTimesheetEntry> parseBeelineTimesheet(MultipartFile beelineFile) throws IOException {
-        List<BeelineTimesheetEntry> employeeDataList = new ArrayList<>();
+    public Map<String, Map<String, BeelineTimesheetEntry>> parseBeelineTimesheet(MultipartFile beelineFile) throws IOException {
+        Map<String, Map<String, BeelineTimesheetEntry>> beelineEmployeeData = new HashMap<>();
         Workbook workbook = WorkbookFactory.create(beelineFile.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
 
@@ -116,16 +116,26 @@ public class ExcelParser {
             if (row == null) continue;
 
             String mcId = normalizeMcId(getCellValue(row.getCell(8))); // Column I for MC ID
-            String employeeName = getCellValue(row.getCell(1));  // Column B for Employee Name
             String timesheetDate = getCellValue(row.getCell(9));  // Column J for Timesheet Date
+            String employeeName = getCellValue(row.getCell(1));  // Column B for Employee Name
             double totalUnits = parseDouble(getCellValue(row.getCell(6))); // Column G for Units
 
-            if (!mcId.isEmpty()) {
-                employeeDataList.add(new BeelineTimesheetEntry(mcId, employeeName, timesheetDate, totalUnits));
+//            if (!mcId.isEmpty()) {
+//                employeeDataList.add(new BeelineTimesheetEntry(mcId, employeeName, totalUnits));
+//            }
+            BeelineTimesheetEntry beelineTimesheetEntry = new BeelineTimesheetEntry(mcId, employeeName, timesheetDate, totalUnits);
+            if(beelineEmployeeData.containsKey(mcId)) {
+                Map<String, BeelineTimesheetEntry> timesheetData = beelineEmployeeData.get(mcId);
+                timesheetData.put(timesheetDate, beelineTimesheetEntry);
+                beelineEmployeeData.put(mcId, timesheetData);
+            } else {
+                Map<String, BeelineTimesheetEntry> timesheetData = new HashMap<>();
+                timesheetData.put(timesheetDate, beelineTimesheetEntry);
+                beelineEmployeeData.put(mcId, timesheetData);
             }
         }
         workbook.close();
-        return employeeDataList;
+        return beelineEmployeeData;
     }
 
     /**
@@ -163,38 +173,60 @@ public class ExcelParser {
         }
     }
 
-    public Map<String, Pair<String, String>> parseEmployeeMapping(MultipartFile employeeMappingFile) throws IOException {
-        Map<String, Pair<String, String>> employeeMap = new HashMap<>();
+    public byte[] exportToExcel(List<Discrepancy> discrepancies) throws IOException {
+        String filePath = "discrepancies_" + System.currentTimeMillis() + ".xlsx";
 
-        try (FileInputStream fis = new FileInputStream(String.valueOf(employeeMappingFile));
-             Workbook workbook = new XSSFWorkbook(fis)) {
-            // Parse FFS List
-            Sheet ffsSheet = workbook.getSheet("FFS List");
-            Map<String, String> fdEidMap = new HashMap<>();
-            for (int i = 1; i <= ffsSheet.getLastRowNum(); i++) {
-                Row row = ffsSheet.getRow(i);
-                if (row != null) {
-                    String resourceName = row.getCell(1).getStringCellValue().trim();
-                    String fdEid = row.getCell(2).getStringCellValue().trim();
-                    fdEidMap.put(resourceName, fdEid);
-                }
-            }
+        // Create Workbook
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Discrepancies");
 
-            // Parse MC List
-            Sheet mcSheet = workbook.getSheet("MC List");
-            for (int i = 1; i <= mcSheet.getLastRowNum(); i++) {
-                Row row = mcSheet.getRow(i);
-                if (row != null) {
-                    String resourceName = row.getCell(1).getStringCellValue().trim();
-                    String mcEid = row.getCell(2).getStringCellValue().trim();
-                    String fdEid = fdEidMap.get(resourceName);
-                    if (fdEid != null) {
-                        employeeMap.put(resourceName, new ImmutablePair<>(fdEid, mcEid));
-                    }
-                }
+        // Create header row (manually setting the header)
+        Row headerRow = sheet.createRow(0);
+        headerRow.createCell(0).setCellValue("Sr No");
+        headerRow.createCell(1).setCellValue("Resource Name");
+        headerRow.createCell(2).setCellValue("FD ID");
+        headerRow.createCell(3).setCellValue("MC ID");
+        headerRow.createCell(4).setCellValue("Timesheet Date");
+        headerRow.createCell(5).setCellValue("Discrepancy Reason");
+
+        // Write data rows (manually setting each field for Discrepancy)
+        int rowNum = 1;
+        for (Discrepancy discrepancy : discrepancies) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(discrepancy.getSrNo());
+            row.createCell(1).setCellValue(discrepancy.getResourceName());
+            row.createCell(2).setCellValue(discrepancy.getFdId());
+            row.createCell(3).setCellValue(discrepancy.getMcId());
+            row.createCell(4).setCellValue(discrepancy.getTimesheetDate());
+            row.createCell(5).setCellValue(discrepancy.getDiscrepancyReason());
+        }
+
+        // Write to file
+        try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
+            workbook.write(fileOut);
+        } finally {
+            workbook.close();
+        }
+
+        // Read the file content into a byte array
+        File file = new File(filePath);
+        byte[] fileContent = Files.readAllBytes(file.toPath());
+
+        // Delete the file after reading its contents
+        deleteFile(file);
+
+        // Return the byte array
+        return fileContent;
+    }
+
+    // Helper method to delete the file
+    private void deleteFile(File file) {
+        if (file.exists()) {
+            boolean isDeleted = file.delete();
+            if (!isDeleted) {
+                System.err.println("Failed to delete the file: " + file.getName());
             }
         }
-        return employeeMap;
     }
 
 }
