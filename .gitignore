@@ -33,4 +33,4 @@ build/
 .vscode/
 
 # Dependency directories
-frontend/node_modules
+frontend/node_modules/*
