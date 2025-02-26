@@ -5,6 +5,7 @@ import com.mastercard.timesheet.discrepancy_checker.model.Discrepancy;
 import com.mastercard.timesheet.discrepancy_checker.model.PrismTimesheetEntry;
 import com.mastercard.timesheet.discrepancy_checker.parser.ExcelParser;
 import org.apache.commons.collections4.MultiValuedMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,11 +18,8 @@ public class TimesheetService {
 
     private final Map<String, String> employeeMap = new HashMap<>();
 
+    @Autowired
     private ExcelParser excelParser;
-
-    public TimesheetService(ExcelParser excelParser) {
-        this.excelParser = excelParser;
-    }
 
 
     public TimesheetService() {
@@ -71,6 +69,10 @@ public class TimesheetService {
             String fcId = findKeyByValue(employeeMap, mcId);
             MultiValuedMap<String, PrismTimesheetEntry> prismTimesheetData = prismTimesheets.get(fcId);
 
+            if (prismTimesheetData == null) {
+                System.out.println("FC ID: " + fcId + " MC ID: " + mcId);
+                continue;
+            }
             List<String> sortedDates = getSortedDates(beelineTimesheetData.keySet(), prismTimesheetData.keySet());
 
             for (String date : sortedDates) {
@@ -86,41 +88,43 @@ public class TimesheetService {
                         prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
                         type = prismTimesheetEntries.get(0).getTypeOfHours();
 
-                        if ((isWorkingType(type) && "8".equals(prismHours) && ("1".equals(beelineHours) || "8".equals(beelineHours))) ||
-                                (!isWorkingType(type) && "8".equals(prismHours) && "0".equals(beelineHours))) {
-
+                        if ((isWorkingType(type) && "8.0".equals(prismHours) && ("1.0".equals(beelineHours) || "8.0".equals(beelineHours))) ||
+                                (!isWorkingType(type) && "8.0".equals(prismHours) && "0.0".equals(beelineHours))) {
+                            reason = "There is no discrepancy";
                         } else {
                             reason = "Timesheet mismatch in Prism and Beeline timesheets";
                         }
+                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fcId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                        discrepancies.add(discrepancy);
                     } else if (prismTimesheetEntries.size() == 2) {
                         prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
                         type = prismTimesheetEntries.get(0).getTypeOfHours();
                         prismHours2 = String.valueOf(prismTimesheetEntries.get(1).getTotalHours());
                         type2 = prismTimesheetEntries.get(1).getTypeOfHours();
 
-                        if (("Leave".equalsIgnoreCase(type) && isWorkingType(type2) && "4".equals(prismHours) && ("4".equals(beelineHours) || "0.5".equals(beelineHours))) ||
-                                ("Leave".equalsIgnoreCase(type2) && isWorkingType(type) && "4".equals(prismHours) && ("4".equals(beelineHours) || "0.5".equals(beelineHours)))) {
-
+                        if (("Leave".equalsIgnoreCase(type) && isWorkingType(type2) && "4.0".equals(prismHours2) && ("4.0".equals(beelineHours) || "0.5".equals(beelineHours))) ||
+                                ("Leave".equalsIgnoreCase(type2) && isWorkingType(type) && "4.0".equals(prismHours) && ("4.0".equals(beelineHours) || "0.5".equals(beelineHours)))) {
+                            reason = "There is no discrepancy";
                         } else {
                             reason = "Timesheet mismatch in Prism and Beeline timesheets";
                         }
+                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fcId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                        discrepancies.add(discrepancy);
                     }
                 }
 
-                Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fcId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
-                discrepancies.add(discrepancy);
+
             }
             srNo++;
+            if (srNo == 96) {
+                System.out.println("This is Garvit");
+            }
         }
-        byte[] bytes = excelParser.exportToExcel(discrepancies);
-        return bytes;
+        return excelParser.exportToExcel(discrepancies);
     }
 
     private boolean isWorkingType(String type) {
-        if ("Leave".equalsIgnoreCase(type) || "Public Holiday".equalsIgnoreCase(type)) {
-            return false;
-        }
-        return true;
+        return !"Leave".equalsIgnoreCase(type) && !"Public Holiday".equalsIgnoreCase(type);
     }
 
     public static String findKeyByValue(Map<String, String> map, String value) {

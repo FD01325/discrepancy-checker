@@ -47,8 +47,8 @@ public class ExcelParser {
 
             // If both key and value cells are not null, add them to the map
             if (keyCell != null && valueCell != null) {
-                String key = keyCell.getStringCellValue();
-                String value = valueCell.getStringCellValue();
+                String key = keyCell.getStringCellValue().toLowerCase();
+                String value = valueCell.getStringCellValue().toLowerCase();
 
                 // Add to the Map
                 employeeMap.put(key, value);
@@ -74,9 +74,9 @@ public class ExcelParser {
 
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
-            if (row == null) continue;
+            if (row == null || isRowEmpty(row)) continue;
 
-            String fdId = getCellValue(row.getCell(5));  // Column F for User Employee ID
+            String fdId = getCellValue(row.getCell(5)).toLowerCase();  // Column F for User Employee ID
             String timesheetDate = getCellValue(row.getCell(2));  // Column C for Timesheet Date
             String employeeName =  getCellValue(row.getCell(3));  // Column D for Employee Name
             String typeOfHours = getCellValue(row.getCell(17)); // Column R for Type of Hours
@@ -113,9 +113,9 @@ public class ExcelParser {
 
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
-            if (row == null) continue;
+            if (row == null || isRowEmpty(row)) continue;
 
-            String mcId = normalizeMcId(getCellValue(row.getCell(8))); // Column I for MC ID
+            String mcId = getCellValue(row.getCell(8)).toLowerCase(); // Column I for MC ID
             String timesheetDate = getCellValue(row.getCell(9));  // Column J for Timesheet Date
             String employeeName = getCellValue(row.getCell(1));  // Column B for Employee Name
             double totalUnits = parseDouble(getCellValue(row.getCell(6))); // Column G for Units
@@ -136,17 +136,6 @@ public class ExcelParser {
         }
         workbook.close();
         return beelineEmployeeData;
-    }
-
-    /**
-     * Helper method to normalize the MC ID by converting the first character to lowercase.
-     * Example: "E12345" becomes "e12345".
-     */
-    private String normalizeMcId(String mcId) {
-        if (mcId != null && !mcId.isEmpty()) {
-            return "e" + mcId.substring(1).toLowerCase();  // Ensures all MC IDs start with 'e'
-        }
-        return mcId;
     }
 
     /**
@@ -227,6 +216,16 @@ public class ExcelParser {
                 System.err.println("Failed to delete the file: " + file.getName());
             }
         }
+    }
+
+    public static boolean isRowEmpty(Row row) {
+        for (int cellNum = row.getFirstCellNum(); cellNum < row.getLastCellNum(); cellNum++) {
+            Cell cell = row.getCell(cellNum);
+            if (cell != null && cell.getCellType() != CellType.BLANK) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }
