@@ -1,6 +1,11 @@
 package com.mastercard.timesheet.discrepancy_checker.model;
 
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class PrismTimesheetEntry {
     private String fdId;
     private String timesheetDate;
@@ -13,50 +18,6 @@ public class PrismTimesheetEntry {
         this.timesheetDate = timesheetDate;
         this.employeeName = employeeName;
         this.typeOfHours = typeOfHours;
-        this.totalHours = totalHours;
-    }
-
-    public PrismTimesheetEntry() {
-
-    }
-
-    public String getFdId() {
-        return fdId;
-    }
-
-    public void setFdId(String fdId) {
-        this.fdId = fdId;
-    }
-
-    public String getTimesheetDate() {
-        return timesheetDate;
-    }
-
-    public void setTimesheetDate(String timesheetDate) {
-        this.timesheetDate = timesheetDate;
-    }
-
-    public String getEmployeeName() {
-        return employeeName;
-    }
-
-    public void setEmployeeName(String employeeName) {
-        this.employeeName = employeeName;
-    }
-
-    public String getTypeOfHours() {
-        return typeOfHours;
-    }
-
-    public void setTypeOfHours(String typeOfHours) {
-        this.typeOfHours = typeOfHours;
-    }
-
-    public double getTotalHours() {
-        return totalHours;
-    }
-
-    public void setTotalHours(double totalHours) {
         this.totalHours = totalHours;
     }
 

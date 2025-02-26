@@ -1,5 +1,10 @@
 package com.mastercard.timesheet.discrepancy_checker.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class EmployeeMappingEntry {
     private String fdEid;
     private String mcEid;
@@ -11,22 +16,4 @@ public class EmployeeMappingEntry {
         this.resourceName = employeeName;
     }
 
-    public String getFdEid() {
-        return fdEid;
-    }
-    public void setFdEid(String fdEid) {
-        this.fdEid = fdEid;
-    }
-    public String getMcEid() {
-        return mcEid;
-    }
-    public void setMcEid(String mcEid) {
-        this.mcEid = mcEid;
-    }
-    public String getResourceName() {
-        return resourceName;
-    }
-    public void setResourceName(String resourceName) {
-        this.resourceName = resourceName;
-    }
 }

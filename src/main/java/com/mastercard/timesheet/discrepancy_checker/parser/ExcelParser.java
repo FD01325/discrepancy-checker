@@ -5,8 +5,6 @@ import com.mastercard.timesheet.discrepancy_checker.model.Discrepancy;
 import com.mastercard.timesheet.discrepancy_checker.model.PrismTimesheetEntry;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
@@ -17,7 +15,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class ExcelParser {
@@ -63,7 +63,7 @@ public class ExcelParser {
      * Parses the Prism Timesheet to extract EmployeeData.
      *
      * @param prismFile MultipartFile representing the Prism Timesheet.
-     * @return List of EmployeeData from the Prism Timesheet.
+     * @return Map of EmployeeData from the Prism Timesheet.
      */
     public Map<String, MultiValuedMap<String, PrismTimesheetEntry>> parsePrismTimesheet(MultipartFile prismFile) throws IOException {
 //        List<PrismTimesheetEntry> employeeDataList = new ArrayList<>();
@@ -82,19 +82,15 @@ public class ExcelParser {
             String typeOfHours = getCellValue(row.getCell(17)); // Column R for Type of Hours
             double totalHours = parseDouble(getCellValue(row.getCell(18))); // Column S for Total Hours
 
-//            if (!fdId.isEmpty()) {
-//                employeeDataList.add(new PrismTimesheetEntry(fdId, timesheetDate, employeeName, typeOfHours, totalHours));
-//            }
             PrismTimesheetEntry prismTimesheetEntry = new PrismTimesheetEntry(fdId, timesheetDate, employeeName, typeOfHours, totalHours);
+            MultiValuedMap<String, PrismTimesheetEntry> timesheetData;
             if(prismEmployeeData.containsKey(fdId)) {
-                MultiValuedMap<String, PrismTimesheetEntry> timesheetData = prismEmployeeData.get(fdId);
-                timesheetData.put(timesheetDate, prismTimesheetEntry);
-                prismEmployeeData.put(fdId, timesheetData);
+                timesheetData = prismEmployeeData.get(fdId);
             } else {
-                MultiValuedMap<String, PrismTimesheetEntry> timesheetData = new ArrayListValuedHashMap<>();
-                timesheetData.put(timesheetDate, prismTimesheetEntry);
-                prismEmployeeData.put(fdId, timesheetData);
+                timesheetData = new ArrayListValuedHashMap<>();
             }
+            timesheetData.put(timesheetDate, prismTimesheetEntry);
+            prismEmployeeData.put(fdId, timesheetData);
         }
         workbook.close();
         return prismEmployeeData;
@@ -104,7 +100,7 @@ public class ExcelParser {
      * Parses the Beeline Timesheet to extract EmployeeData.
      *
      * @param beelineFile MultipartFile representing the Beeline Timesheet.
-     * @return List of EmployeeData from the Beeline Timesheet.
+     * @return Map of EmployeeData from the Beeline Timesheet.
      */
     public Map<String, Map<String, BeelineTimesheetEntry>> parseBeelineTimesheet(MultipartFile beelineFile) throws IOException {
         Map<String, Map<String, BeelineTimesheetEntry>> beelineEmployeeData = new HashMap<>();
@@ -120,19 +116,15 @@ public class ExcelParser {
             String employeeName = getCellValue(row.getCell(1));  // Column B for Employee Name
             double totalUnits = parseDouble(getCellValue(row.getCell(6))); // Column G for Units
 
-//            if (!mcId.isEmpty()) {
-//                employeeDataList.add(new BeelineTimesheetEntry(mcId, employeeName, totalUnits));
-//            }
             BeelineTimesheetEntry beelineTimesheetEntry = new BeelineTimesheetEntry(mcId, employeeName, timesheetDate, totalUnits);
+            Map<String, BeelineTimesheetEntry> timesheetData;
             if(beelineEmployeeData.containsKey(mcId)) {
-                Map<String, BeelineTimesheetEntry> timesheetData = beelineEmployeeData.get(mcId);
-                timesheetData.put(timesheetDate, beelineTimesheetEntry);
-                beelineEmployeeData.put(mcId, timesheetData);
+                timesheetData = beelineEmployeeData.get(mcId);
             } else {
-                Map<String, BeelineTimesheetEntry> timesheetData = new HashMap<>();
-                timesheetData.put(timesheetDate, beelineTimesheetEntry);
-                beelineEmployeeData.put(mcId, timesheetData);
+                timesheetData = new HashMap<>();
             }
+            timesheetData.put(timesheetDate, beelineTimesheetEntry);
+            beelineEmployeeData.put(mcId, timesheetData);
         }
         workbook.close();
         return beelineEmployeeData;

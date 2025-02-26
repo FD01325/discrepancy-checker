@@ -1,5 +1,10 @@
 package com.mastercard.timesheet.discrepancy_checker.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class BeelineTimesheetEntry {
     private String mcId;
     private String employeeName;
@@ -10,42 +15,6 @@ public class BeelineTimesheetEntry {
         this.mcId = mcId;
         this.employeeName = employeeName;
         this.timesheetDate = timesheetDate;
-        this.units = units;
-    }
-
-    public BeelineTimesheetEntry() {
-
-    }
-
-    public String getMcId() {
-        return mcId;
-    }
-
-    public void setMcId(String mcId) {
-        this.mcId = mcId;
-    }
-
-    public String getEmployeeName() {
-        return employeeName;
-    }
-
-    public void setEmployeeName(String employeeName) {
-        this.employeeName = employeeName;
-    }
-
-    public String getTimesheetDate() {
-        return timesheetDate;
-    }
-
-    public void setTimesheetDate(String timesheetDate) {
-        this.timesheetDate = timesheetDate;
-    }
-
-    public double getUnits() {
-        return units;
-    }
-
-    public void setUnits(double units) {
         this.units = units;
     }
 
