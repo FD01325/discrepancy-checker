@@ -22,7 +22,7 @@ import java.util.Map;
 @Component
 public class ExcelParser {
 
-    private static final String EMPLOYEE_MAPPING_FILE_PATH = "src/main/resources/EmployeeMapping.xlsx";
+    private static final String EMPLOYEE_MAPPING_FILE_PATH = "backend/src/main/resources/EmployeeMapping.xlsx";
 
     /**
      * Load Employee Mapping from "EmployeeMapping.xlsx".
