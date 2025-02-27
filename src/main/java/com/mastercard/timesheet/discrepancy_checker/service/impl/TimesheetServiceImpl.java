@@ -3,16 +3,17 @@ package com.mastercard.timesheet.discrepancy_checker.service.impl;
 import com.mastercard.timesheet.discrepancy_checker.model.BeelineTimesheetEntry;
 import com.mastercard.timesheet.discrepancy_checker.model.Discrepancy;
 import com.mastercard.timesheet.discrepancy_checker.model.PrismTimesheetEntry;
-import com.mastercard.timesheet.discrepancy_checker.utils.ExcelParserUtils;
 import com.mastercard.timesheet.discrepancy_checker.service.TimesheetService;
+import com.mastercard.timesheet.discrepancy_checker.utils.ExcelParserUtils;
 import com.mastercard.timesheet.discrepancy_checker.utils.TimesheetUtils;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class TimesheetServiceImpl implements TimesheetService {
@@ -38,7 +39,7 @@ public class TimesheetServiceImpl implements TimesheetService {
      * Process Prism and Beeline timesheets, compare them, and generate discrepancies.
      * Map of MCID and beeline timesheet data - <mcid, <date, beelinetimesheet>>
      * Map of FDID and prism timesheet data - <fdid, <date, prismtimesheet>>
-     * Map of Employee Id mappings - <fcId, mcId>
+     * Map of Employee Id mappings - <fdId, mcId>
      */
     @Override
     public byte[] processTimesheets(MultipartFile prismFile, MultipartFile beelineFile) throws Exception {
@@ -53,11 +54,11 @@ public class TimesheetServiceImpl implements TimesheetService {
             String mcId = beelineEntry.getKey();
             Map<String, BeelineTimesheetEntry> beelineTimesheetData = beelineEntry.getValue();
 
-            String fcId = TimesheetUtils.findKeyByValue(employeeMap, mcId);
-            MultiValuedMap<String, PrismTimesheetEntry> prismTimesheetData = prismTimesheets.get(fcId);
+            String fdId = TimesheetUtils.findKeyByValue(employeeMap, mcId);
+            MultiValuedMap<String, PrismTimesheetEntry> prismTimesheetData = prismTimesheets.get(fdId);
 
             if (prismTimesheetData == null) {
-                System.out.println("FC ID: " + fcId + " MC ID: " + mcId);
+                System.out.println("FD ID: " + fdId + " MC ID: " + mcId);
                 continue;
             }
             List<String> sortedDates = TimesheetUtils.getSortedDates(beelineTimesheetData.keySet(), prismTimesheetData.keySet());
@@ -65,7 +66,7 @@ public class TimesheetServiceImpl implements TimesheetService {
             for (String date : sortedDates) {
                 BeelineTimesheetEntry beelineTimesheetEntry = beelineTimesheetData.get(date);
                 ArrayList<PrismTimesheetEntry> prismTimesheetEntries = new ArrayList<>(prismTimesheetData.get(date));
-                String prismHours = null, beelineHours = null, type = null, reason = null, prismHours2 = null, type2 = null;
+                String prismHours, beelineHours, type, reason, prismHours2, type2;
 
                 if (beelineTimesheetEntry != null && !prismTimesheetEntries.isEmpty()) {
                     beelineHours = String.valueOf(beelineTimesheetEntry.getUnits());
@@ -81,9 +82,9 @@ public class TimesheetServiceImpl implements TimesheetService {
                         } else {
                             reason = "Timesheet mismatch in Prism and Beeline timesheets";
                         }
-                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fcId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
                         discrepancies.add(discrepancy);
-                    } else if (prismTimesheetEntries.size() == 2) {
+                    } else if (prismTimesheetEntries.size() == 2) { // half day
                         prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
                         type = prismTimesheetEntries.get(0).getTypeOfHours();
                         prismHours2 = String.valueOf(prismTimesheetEntries.get(1).getTotalHours());
@@ -95,7 +96,7 @@ public class TimesheetServiceImpl implements TimesheetService {
                         } else {
                             reason = "Timesheet mismatch in Prism and Beeline timesheets";
                         }
-                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fcId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
                         discrepancies.add(discrepancy);
                     }
                 }

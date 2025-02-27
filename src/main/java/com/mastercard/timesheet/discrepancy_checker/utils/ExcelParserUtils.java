@@ -46,8 +46,8 @@ public class ExcelParserUtils {
 
             // If both key and value cells are not null, add them to the map
             if (keyCell != null && valueCell != null) {
-                String key = keyCell.getStringCellValue().toLowerCase();
-                String value = valueCell.getStringCellValue().toLowerCase();
+                String key = keyCell.getStringCellValue().toUpperCase();
+                String value = valueCell.getStringCellValue().toUpperCase();
 
                 // Add to the Map
                 employeeMap.put(key, value);
@@ -65,8 +65,6 @@ public class ExcelParserUtils {
      * @return Map of EmployeeData from the Prism Timesheet.
      */
     public static Map<String, MultiValuedMap<String, PrismTimesheetEntry>> parsePrismTimesheet(MultipartFile prismFile) throws IOException {
-//        List<PrismTimesheetEntry> employeeDataList = new ArrayList<>();
-
         Map<String, MultiValuedMap<String, PrismTimesheetEntry>> prismEmployeeData = new HashMap<>();
         Workbook workbook = WorkbookFactory.create(prismFile.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
@@ -75,7 +73,7 @@ public class ExcelParserUtils {
             Row row = sheet.getRow(i);
             if (row == null || isRowEmpty(row)) continue;
 
-            String fdId = getCellValue(row.getCell(5)).toLowerCase();  // Column F for User Employee ID
+            String fdId = getCellValue(row.getCell(5)).toUpperCase();  // Column F for User Employee ID
             String timesheetDate = getCellValue(row.getCell(2));  // Column C for Timesheet Date
             String employeeName = getCellValue(row.getCell(3));  // Column D for Employee Name
             String typeOfHours = getCellValue(row.getCell(17)); // Column R for Type of Hours
@@ -110,7 +108,7 @@ public class ExcelParserUtils {
             Row row = sheet.getRow(i);
             if (row == null || isRowEmpty(row)) continue;
 
-            String mcId = getCellValue(row.getCell(8)).toLowerCase(); // Column I for MC ID
+            String mcId = getCellValue(row.getCell(8)).toUpperCase(); // Column I for MC ID
             String timesheetDate = getCellValue(row.getCell(9));  // Column J for Timesheet Date
             String employeeName = getCellValue(row.getCell(1));  // Column B for Employee Name
             double totalUnits = parseDouble(getCellValue(row.getCell(6))); // Column G for Units
