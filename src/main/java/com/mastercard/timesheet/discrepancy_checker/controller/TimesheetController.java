@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/timesheet")
 public class TimesheetController {
@@ -16,8 +15,8 @@ public class TimesheetController {
     private TimesheetService timesheetService;
 
     /**
-     * Endpoint to upload Prism Timesheet and Beeline Timesheet files
-     * and generate the discrepancy report.
+     * Endpoint to upload Prism and Beeline Timesheet files, compare them,
+     * and generate a discrepancy report in the form of an Excel file.
      */
     @PostMapping("/compare")
     public ResponseEntity<byte[]> compareTimesheets(

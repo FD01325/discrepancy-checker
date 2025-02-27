@@ -1,30 +1,17 @@
 package com.mastercard.timesheet.discrepancy_checker.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@ToString
 public class BeelineTimesheetEntry {
     private String mcId;
     private String employeeName;
     private String timesheetDate;
     private double units;
-
-    public BeelineTimesheetEntry(String mcId, String employeeName, String timesheetDate, double units) {
-        this.mcId = mcId;
-        this.employeeName = employeeName;
-        this.timesheetDate = timesheetDate;
-        this.units = units;
-    }
-
-    @Override
-    public String toString() {
-        return "BeelineTimesheetEntry{" +
-                "mcId='" + mcId + '\'' +
-                ", employeeName='" + employeeName + '\'' +
-                ", timesheetDate='" + timesheetDate + '\'' +
-                ", units=" + units +
-                '}';
-    }
 }

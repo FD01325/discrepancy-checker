@@ -1,4 +1,4 @@
-package com.mastercard.timesheet.discrepancy_checker.parser;
+package com.mastercard.timesheet.discrepancy_checker.utils;
 
 import com.mastercard.timesheet.discrepancy_checker.model.BeelineTimesheetEntry;
 import com.mastercard.timesheet.discrepancy_checker.model.Discrepancy;
@@ -7,7 +7,6 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -19,14 +18,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
-public class ExcelParser {
+public class ExcelParserUtils {
 
-    private static final String EMPLOYEE_MAPPING_FILE_PATH = "backend/src/main/resources/EmployeeMapping.xlsx";
+    private static final String EMPLOYEE_MAPPING_FILE_PATH = "src/main/resources/EmployeeMapping.xlsx";
 
     /**
      * Load Employee Mapping from "EmployeeMapping.xlsx".
-     * @return Map<ResourceName, FD_EID/MC_EID>
+     *
+     * @return Map<ResourceName, FD_EID / MC_EID>
      */
     public static Map<String, String> loadEmployeeMapping() throws Exception {
         Map<String, String> employeeMap = new HashMap<>();
@@ -65,7 +64,7 @@ public class ExcelParser {
      * @param prismFile MultipartFile representing the Prism Timesheet.
      * @return Map of EmployeeData from the Prism Timesheet.
      */
-    public Map<String, MultiValuedMap<String, PrismTimesheetEntry>> parsePrismTimesheet(MultipartFile prismFile) throws IOException {
+    public static Map<String, MultiValuedMap<String, PrismTimesheetEntry>> parsePrismTimesheet(MultipartFile prismFile) throws IOException {
 //        List<PrismTimesheetEntry> employeeDataList = new ArrayList<>();
 
         Map<String, MultiValuedMap<String, PrismTimesheetEntry>> prismEmployeeData = new HashMap<>();
@@ -78,13 +77,13 @@ public class ExcelParser {
 
             String fdId = getCellValue(row.getCell(5)).toLowerCase();  // Column F for User Employee ID
             String timesheetDate = getCellValue(row.getCell(2));  // Column C for Timesheet Date
-            String employeeName =  getCellValue(row.getCell(3));  // Column D for Employee Name
+            String employeeName = getCellValue(row.getCell(3));  // Column D for Employee Name
             String typeOfHours = getCellValue(row.getCell(17)); // Column R for Type of Hours
             double totalHours = parseDouble(getCellValue(row.getCell(18))); // Column S for Total Hours
 
             PrismTimesheetEntry prismTimesheetEntry = new PrismTimesheetEntry(fdId, timesheetDate, employeeName, typeOfHours, totalHours);
             MultiValuedMap<String, PrismTimesheetEntry> timesheetData;
-            if(prismEmployeeData.containsKey(fdId)) {
+            if (prismEmployeeData.containsKey(fdId)) {
                 timesheetData = prismEmployeeData.get(fdId);
             } else {
                 timesheetData = new ArrayListValuedHashMap<>();
@@ -102,7 +101,7 @@ public class ExcelParser {
      * @param beelineFile MultipartFile representing the Beeline Timesheet.
      * @return Map of EmployeeData from the Beeline Timesheet.
      */
-    public Map<String, Map<String, BeelineTimesheetEntry>> parseBeelineTimesheet(MultipartFile beelineFile) throws IOException {
+    public static Map<String, Map<String, BeelineTimesheetEntry>> parseBeelineTimesheet(MultipartFile beelineFile) throws IOException {
         Map<String, Map<String, BeelineTimesheetEntry>> beelineEmployeeData = new HashMap<>();
         Workbook workbook = WorkbookFactory.create(beelineFile.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
@@ -118,7 +117,7 @@ public class ExcelParser {
 
             BeelineTimesheetEntry beelineTimesheetEntry = new BeelineTimesheetEntry(mcId, employeeName, timesheetDate, totalUnits);
             Map<String, BeelineTimesheetEntry> timesheetData;
-            if(beelineEmployeeData.containsKey(mcId)) {
+            if (beelineEmployeeData.containsKey(mcId)) {
                 timesheetData = beelineEmployeeData.get(mcId);
             } else {
                 timesheetData = new HashMap<>();
@@ -133,7 +132,7 @@ public class ExcelParser {
     /**
      * Utility method to get the string value of a cell.
      */
-    private String getCellValue(Cell cell) {
+    private static String getCellValue(Cell cell) {
         if (cell == null) return "";
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue().trim();
@@ -146,7 +145,7 @@ public class ExcelParser {
     /**
      * Utility method to safely parse a double from a string.
      */
-    private double parseDouble(String value) {
+    private static double parseDouble(String value) {
         try {
             return Double.parseDouble(value);
         } catch (NumberFormatException e) {
@@ -154,7 +153,7 @@ public class ExcelParser {
         }
     }
 
-    public byte[] exportToExcel(List<Discrepancy> discrepancies) throws IOException {
+    public static byte[] exportToExcel(List<Discrepancy> discrepancies) throws IOException {
         String filePath = "discrepancies_" + System.currentTimeMillis() + ".xlsx";
 
         // Create Workbook
@@ -201,7 +200,7 @@ public class ExcelParser {
     }
 
     // Helper method to delete the file
-    private void deleteFile(File file) {
+    private static void deleteFile(File file) {
         if (file.exists()) {
             boolean isDeleted = file.delete();
             if (!isDeleted) {
