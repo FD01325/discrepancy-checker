@@ -108,8 +108,8 @@ public class ExcelParserUtils {
             Row row = sheet.getRow(i);
             if (row == null || isRowEmpty(row)) continue;
 
-            String mcId = getCellValue(row.getCell(8)).toUpperCase(); // Column I for MC ID
-            String timesheetDate = getCellValue(row.getCell(9));  // Column J for Timesheet Date
+            String mcId = getCellValue(row.getCell(7)).toUpperCase(); // Column H for MC ID
+            String timesheetDate = getCellValue(row.getCell(8));  // Column I for Timesheet Date
             String employeeName = getCellValue(row.getCell(1));  // Column B for Employee Name
             double totalUnits = parseDouble(getCellValue(row.getCell(6))); // Column G for Units
 

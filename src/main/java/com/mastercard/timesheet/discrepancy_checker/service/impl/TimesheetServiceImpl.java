@@ -68,11 +68,14 @@ public class TimesheetServiceImpl implements TimesheetService {
                 ArrayList<PrismTimesheetEntry> prismTimesheetEntries = new ArrayList<>(prismTimesheetData.get(date));
                 String prismHours, beelineHours, type, reason, prismHours2, type2;
 
-                if (beelineTimesheetEntry != null && !prismTimesheetEntries.isEmpty()) {
+                if (beelineTimesheetEntry != null) {
                     beelineHours = String.valueOf(beelineTimesheetEntry.getUnits());
 
-                    // full day
-                    if (prismTimesheetEntries.size() == 1) {
+                    if(prismTimesheetEntries.isEmpty()) {
+                        reason = "Timesheet mismatch in Prism and Beeline timesheets. Prism timesheet not filled, Beeline Units: " + beelineHours;
+                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(beelineTimesheetEntry.getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                        discrepancies.add(discrepancy);
+                    } else if (prismTimesheetEntries.size() == 1) {
                         prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
                         type = prismTimesheetEntries.get(0).getTypeOfHours();
 
@@ -99,9 +102,13 @@ public class TimesheetServiceImpl implements TimesheetService {
                         Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
                         discrepancies.add(discrepancy);
                     }
+                } else {
+                    prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
+                    type = prismTimesheetEntries.get(0).getTypeOfHours();
+                    reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Beeline timesheet not filled";
+                    Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                    discrepancies.add(discrepancy);
                 }
-
-
             }
             srNo++;
         }
