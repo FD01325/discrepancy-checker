@@ -80,7 +80,7 @@ public class TimesheetServiceImpl implements TimesheetService {
                                 (!isWorkingType(type) && "8.0".equals(prismHours) && "0.0".equals(beelineHours))) {
                             reason = "There is no discrepancy";
                         } else {
-                            reason = "Timesheet mismatch in Prism and Beeline timesheets";
+                            reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Beeline Units: " + beelineHours;
                         }
                         Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
                         discrepancies.add(discrepancy);
@@ -94,7 +94,7 @@ public class TimesheetServiceImpl implements TimesheetService {
                                 ("Leave".equalsIgnoreCase(type2) && isWorkingType(type) && "4.0".equals(prismHours) && ("4.0".equals(beelineHours) || "0.5".equals(beelineHours)))) {
                             reason = "There is no discrepancy";
                         } else {
-                            reason = "Timesheet mismatch in Prism and Beeline timesheets";
+                            reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Type of Hours: " + type2 + ", Total Hours in Prism: " + prismHours2 + ", Beeline Units: " + beelineHours;
                         }
                         Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
                         discrepancies.add(discrepancy);
