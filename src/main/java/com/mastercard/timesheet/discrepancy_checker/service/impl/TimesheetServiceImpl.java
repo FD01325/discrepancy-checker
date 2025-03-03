@@ -7,13 +7,11 @@ import com.mastercard.timesheet.discrepancy_checker.service.TimesheetService;
 import com.mastercard.timesheet.discrepancy_checker.utils.ExcelParserUtils;
 import com.mastercard.timesheet.discrepancy_checker.utils.TimesheetUtils;
 import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class TimesheetServiceImpl implements TimesheetService {
@@ -55,64 +53,73 @@ public class TimesheetServiceImpl implements TimesheetService {
             Map<String, BeelineTimesheetEntry> beelineTimesheetData = beelineEntry.getValue();
 
             String fdId = TimesheetUtils.findKeyByValue(employeeMap, mcId);
-            MultiValuedMap<String, PrismTimesheetEntry> prismTimesheetData = prismTimesheets.get(fdId);
+            MultiValuedMap<String, PrismTimesheetEntry> prismTimesheetData = prismTimesheets.getOrDefault(fdId, new ArrayListValuedHashMap<>());
+            identifyDiscrepancies(beelineTimesheetData, prismTimesheetData, discrepancies, srNo, fdId, mcId);
+            prismTimesheets.remove(fdId);
+            srNo++;
+        }
+        for (Map.Entry<String, MultiValuedMap<String, PrismTimesheetEntry>> prismEntry : prismTimesheets.entrySet()) {
+            String fdId = prismEntry.getKey();
+            MultiValuedMap<String, PrismTimesheetEntry> prismTimesheetData = prismEntry.getValue();
 
-            if (prismTimesheetData == null) {
-                System.out.println("FD ID: " + fdId + " MC ID: " + mcId);
-                continue;
-            }
-            List<String> sortedDates = TimesheetUtils.getSortedDates(beelineTimesheetData.keySet(), prismTimesheetData.keySet());
-
-            for (String date : sortedDates) {
-                BeelineTimesheetEntry beelineTimesheetEntry = beelineTimesheetData.get(date);
-                ArrayList<PrismTimesheetEntry> prismTimesheetEntries = new ArrayList<>(prismTimesheetData.get(date));
-                String prismHours, beelineHours, type, reason, prismHours2, type2;
-
-                if (beelineTimesheetEntry != null) {
-                    beelineHours = String.valueOf(beelineTimesheetEntry.getUnits());
-
-                    if(prismTimesheetEntries.isEmpty()) {
-                        reason = "Timesheet mismatch in Prism and Beeline timesheets. Prism timesheet not filled, Beeline Units: " + beelineHours;
-                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(beelineTimesheetEntry.getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
-                        discrepancies.add(discrepancy);
-                    } else if (prismTimesheetEntries.size() == 1) {
-                        prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
-                        type = prismTimesheetEntries.get(0).getTypeOfHours();
-
-                        if ((isWorkingType(type) && "8.0".equals(prismHours) && ("1.0".equals(beelineHours) || "8.0".equals(beelineHours))) ||
-                                (!isWorkingType(type) && "8.0".equals(prismHours) && "0.0".equals(beelineHours))) {
-                            reason = "There is no discrepancy";
-                        } else {
-                            reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Beeline Units: " + beelineHours;
-                        }
-                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
-                        discrepancies.add(discrepancy);
-                    } else if (prismTimesheetEntries.size() == 2) { // half day
-                        prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
-                        type = prismTimesheetEntries.get(0).getTypeOfHours();
-                        prismHours2 = String.valueOf(prismTimesheetEntries.get(1).getTotalHours());
-                        type2 = prismTimesheetEntries.get(1).getTypeOfHours();
-
-                        if (("Leave".equalsIgnoreCase(type) && isWorkingType(type2) && "4.0".equals(prismHours2) && ("4.0".equals(beelineHours) || "0.5".equals(beelineHours))) ||
-                                ("Leave".equalsIgnoreCase(type2) && isWorkingType(type) && "4.0".equals(prismHours) && ("4.0".equals(beelineHours) || "0.5".equals(beelineHours)))) {
-                            reason = "There is no discrepancy";
-                        } else {
-                            reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Type of Hours: " + type2 + ", Total Hours in Prism: " + prismHours2 + ", Beeline Units: " + beelineHours;
-                        }
-                        Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
-                        discrepancies.add(discrepancy);
-                    }
-                } else {
-                    prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
-                    type = prismTimesheetEntries.get(0).getTypeOfHours();
-                    reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Beeline timesheet not filled";
-                    Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
-                    discrepancies.add(discrepancy);
-                }
-            }
+            String mcId = employeeMap.get(fdId);
+            Map<String, BeelineTimesheetEntry> beelineTimesheetData = beelineTimesheets.getOrDefault(mcId, Map.of());
+            identifyDiscrepancies(beelineTimesheetData, prismTimesheetData, discrepancies, srNo, fdId, mcId);
             srNo++;
         }
         return ExcelParserUtils.exportToExcel(discrepancies);
+    }
+
+    private void identifyDiscrepancies(Map<String, BeelineTimesheetEntry> beelineTimesheetData, MultiValuedMap<String, PrismTimesheetEntry> prismTimesheetData, List<Discrepancy> discrepancies, int srNo, String fdId, String mcId) {
+        List<String> sortedDates = TimesheetUtils.getSortedDates(beelineTimesheetData.keySet(), prismTimesheetData.keySet());
+
+        for (String date : sortedDates) {
+            BeelineTimesheetEntry beelineTimesheetEntry = beelineTimesheetData.get(date);
+            ArrayList<PrismTimesheetEntry> prismTimesheetEntries = new ArrayList<>(prismTimesheetData.get(date));
+            String prismHours, beelineHours, type, reason, prismHours2, type2;
+
+            if (beelineTimesheetEntry != null) {
+                beelineHours = String.valueOf(beelineTimesheetEntry.getUnits());
+
+                if(prismTimesheetEntries.isEmpty()) {
+                    reason = "Timesheet mismatch in Prism and Beeline timesheets. Prism timesheet not filled, Beeline Units: " + beelineHours;
+                    Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(beelineTimesheetEntry.getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                    discrepancies.add(discrepancy);
+                } else if (prismTimesheetEntries.size() == 1) {
+                    prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
+                    type = prismTimesheetEntries.get(0).getTypeOfHours();
+
+                    if ((isWorkingType(type) && "8.0".equals(prismHours) && ("1.0".equals(beelineHours) || "8.0".equals(beelineHours))) ||
+                            (!isWorkingType(type) && "8.0".equals(prismHours) && "0.0".equals(beelineHours))) {
+                        reason = "There is no discrepancy";
+                    } else {
+                        reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Beeline Units: " + beelineHours;
+                    }
+                    Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                    discrepancies.add(discrepancy);
+                } else if (prismTimesheetEntries.size() == 2) { // half day
+                    prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
+                    type = prismTimesheetEntries.get(0).getTypeOfHours();
+                    prismHours2 = String.valueOf(prismTimesheetEntries.get(1).getTotalHours());
+                    type2 = prismTimesheetEntries.get(1).getTypeOfHours();
+
+                    if (("Leave".equalsIgnoreCase(type) && isWorkingType(type2) && "4.0".equals(prismHours2) && ("4.0".equals(beelineHours) || "0.5".equals(beelineHours))) ||
+                            ("Leave".equalsIgnoreCase(type2) && isWorkingType(type) && "4.0".equals(prismHours) && ("4.0".equals(beelineHours) || "0.5".equals(beelineHours)))) {
+                        reason = "There is no discrepancy";
+                    } else {
+                        reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Type of Hours: " + type2 + ", Total Hours in Prism: " + prismHours2 + ", Beeline Units: " + beelineHours;
+                    }
+                    Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                    discrepancies.add(discrepancy);
+                }
+            } else {
+                prismHours = String.valueOf(prismTimesheetEntries.get(0).getTotalHours());
+                type = prismTimesheetEntries.get(0).getTypeOfHours();
+                reason = "Timesheet mismatch in Prism and Beeline timesheets. Type of Hours: " + type + ", Total Hours in Prism: " + prismHours + ", Beeline timesheet not filled";
+                Discrepancy discrepancy = Discrepancy.builder().srNo(srNo).resourceName(prismTimesheetEntries.get(0).getEmployeeName()).fdId(fdId).mcId(mcId).timesheetDate(date).discrepancyReason(reason).build();
+                discrepancies.add(discrepancy);
+            }
+        }
     }
 
     private boolean isWorkingType(String type) {
