@@ -7,7 +7,6 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -66,12 +65,12 @@ public class ExcelParserUtils {
     /**
      * Parses the Prism Timesheet to extract EmployeeData.
      *
-     * @param prismFile MultipartFile representing the Prism Timesheet.
+     * @param prismInputStream MultipartFile representing the Prism Timesheet.
      * @return Map of EmployeeData from the Prism Timesheet.
      */
-    public static Map<String, MultiValuedMap<String, PrismTimesheetEntry>> parsePrismTimesheet(MultipartFile prismFile) throws IOException {
+    public static Map<String, MultiValuedMap<String, PrismTimesheetEntry>> parsePrismTimesheet(InputStream prismInputStream) throws IOException {
         Map<String, MultiValuedMap<String, PrismTimesheetEntry>> prismEmployeeData = new HashMap<>();
-        Workbook workbook = WorkbookFactory.create(prismFile.getInputStream());
+        Workbook workbook = WorkbookFactory.create(prismInputStream);
         Sheet sheet = workbook.getSheetAt(0);
 
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -101,12 +100,12 @@ public class ExcelParserUtils {
     /**
      * Parses the Beeline Timesheet to extract EmployeeData.
      *
-     * @param beelineFile MultipartFile representing the Beeline Timesheet.
+     * @param beelineInputStream MultipartFile representing the Beeline Timesheet.
      * @return Map of EmployeeData from the Beeline Timesheet.
      */
-    public static Map<String, Map<String, BeelineTimesheetEntry>> parseBeelineTimesheet(MultipartFile beelineFile) throws IOException {
+    public static Map<String, Map<String, BeelineTimesheetEntry>> parseBeelineTimesheet(InputStream beelineInputStream) throws IOException {
         Map<String, Map<String, BeelineTimesheetEntry>> beelineEmployeeData = new HashMap<>();
-        Workbook workbook = WorkbookFactory.create(beelineFile.getInputStream());
+        Workbook workbook = WorkbookFactory.create(beelineInputStream);
         Sheet sheet = workbook.getSheetAt(0);
 
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
