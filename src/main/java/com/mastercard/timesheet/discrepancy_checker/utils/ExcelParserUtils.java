@@ -9,18 +9,13 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ExcelParserUtils {
-
-    private static final String EMPLOYEE_MAPPING_FILE_PATH = "src/main/resources/EmployeeMapping.xlsx";
 
     /**
      * Load Employee Mapping from "EmployeeMapping.xlsx".
@@ -29,8 +24,15 @@ public class ExcelParserUtils {
      */
     public static Map<String, String> loadEmployeeMapping() throws Exception {
         Map<String, String> employeeMap = new HashMap<>();
-        FileInputStream fis = new FileInputStream(EMPLOYEE_MAPPING_FILE_PATH);
-        Workbook workbook = new XSSFWorkbook(fis);
+
+        // Load file from resources
+        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("EmployeeMapping.xlsx");
+
+        if (inputStream == null) {
+            throw new RuntimeException("EmployeeMapping.xlsx not found in resources");
+        }
+
+        Workbook workbook = new XSSFWorkbook(inputStream);
 
         Sheet mappingSheet = workbook.getSheet("Sheet1");
 
@@ -55,6 +57,7 @@ public class ExcelParserUtils {
         }
 
         workbook.close();
+        inputStream.close();
         return employeeMap;
     }
 
