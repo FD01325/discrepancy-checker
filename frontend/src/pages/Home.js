@@ -40,48 +40,27 @@ const Home = () => {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
       if (!reportAvailable) return;
 
-      try {
-          // Fetch the report file
-          const response = await fetch(reportAvailable);
+      // Convert Blob to Object URL
+      const url = URL.createObjectURL(reportAvailable);
 
-          if (!response.ok) throw new Error("Failed to download file");
+      // Extract the filename (you can modify it as needed)
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `discrepancies_${currentDate}.xlsx`;
 
-          // Extract filename from headers
-          const contentDisposition = response.headers.get("Content-Disposition");
-          let filename = `discrepancies_${new Date().toISOString().split('T')[0]}.xlsx`; // Default filename
+      // Create an invisible <a> element to trigger the download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
 
-          if (contentDisposition) {
-              const match = contentDisposition.match(/filename="?([^"]+)"?/);
-              if (match && match[1]) {
-                  filename = match[1]; // Use the filename from headers
-              }
-          }
-
-          // Convert response to Blob
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-
-          // Create an invisible download link
-          const a = document.createElement("a");
-          a.href = url;
-          a.setAttribute("download", filename); // Set the filename
-          document.body.appendChild(a);
-          a.click();
-
-          // Cleanup
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-
-      } catch (error) {
-          console.error("Download failed:", error);
-      }
+      // Cleanup
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
   };
-
-
-
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
