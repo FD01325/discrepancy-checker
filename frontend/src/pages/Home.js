@@ -40,17 +40,48 @@ const Home = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (!reportAvailable) return;
+  const handleDownload = async () => {
+      if (!reportAvailable) return;
 
-    const url = window.URL.createObjectURL(reportAvailable);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "discrepancies.xlsx";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+      try {
+          // Fetch the report file
+          const response = await fetch(reportAvailable);
+
+          if (!response.ok) throw new Error("Failed to download file");
+
+          // Extract filename from headers
+          const contentDisposition = response.headers.get("Content-Disposition");
+          let filename = `discrepancies_${new Date().toISOString().split('T')[0]}.xlsx`; // Default filename
+
+          if (contentDisposition) {
+              const match = contentDisposition.match(/filename="?([^"]+)"?/);
+              if (match && match[1]) {
+                  filename = match[1]; // Use the filename from headers
+              }
+          }
+
+          // Convert response to Blob
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+
+          // Create an invisible download link
+          const a = document.createElement("a");
+          a.href = url;
+          a.setAttribute("download", filename); // Set the filename
+          document.body.appendChild(a);
+          a.click();
+
+          // Cleanup
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+      } catch (error) {
+          console.error("Download failed:", error);
+      }
   };
+
+
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">

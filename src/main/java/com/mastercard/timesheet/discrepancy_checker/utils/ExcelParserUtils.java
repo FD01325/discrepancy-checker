@@ -11,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +157,8 @@ public class ExcelParserUtils {
     }
 
     public static byte[] exportToExcel(List<Discrepancy> discrepancies) throws IOException {
-        String filePath = "discrepancies_" + System.currentTimeMillis() + ".xlsx";
+        String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String filePath = "discrepancies_" + currentDate + ".xlsx";
 
         // Create Workbook
         Workbook workbook = new XSSFWorkbook();
