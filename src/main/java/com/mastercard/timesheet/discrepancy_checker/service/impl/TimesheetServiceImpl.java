@@ -8,7 +8,6 @@ import com.mastercard.timesheet.discrepancy_checker.utils.ExcelParserUtils;
 import com.mastercard.timesheet.discrepancy_checker.utils.TimesheetUtils;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,16 +30,16 @@ public class TimesheetServiceImpl implements TimesheetService {
 
     private final Map<String, String> employeeMap = new HashMap<>();
 
-    public TimesheetServiceImpl() {
-        loadEmployeeMappings();
+    public TimesheetServiceImpl(@Value("${file.mapping.path}") String mappingFilePath) {
+        loadEmployeeMappings(mappingFilePath);
     }
 
     /**
      * Loads employee mapping from EmployeeMapping.xlsx into a HashMap.
      */
-    private void loadEmployeeMappings() {
+    private void loadEmployeeMappings(String mappingFilePath) {
         try {
-            employeeMap.putAll(ExcelParserUtils.loadEmployeeMapping());
+            employeeMap.putAll(ExcelParserUtils.loadEmployeeMapping(mappingFilePath));
         } catch (Exception e) {
             throw new RuntimeException("Failed to load Employee Mapping: " + e.getMessage());
         }

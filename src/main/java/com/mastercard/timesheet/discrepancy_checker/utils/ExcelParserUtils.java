@@ -17,48 +17,45 @@ import java.util.List;
 import java.util.Map;
 
 public class ExcelParserUtils {
-
     /**
      * Load Employee Mapping from "EmployeeMapping.xlsx".
      *
      * @return Map<ResourceName, FD_EID / MC_EID>
      */
-    public static Map<String, String> loadEmployeeMapping() throws Exception {
+    public static Map<String, String> loadEmployeeMapping(String mappingFilePath) throws Exception {
         Map<String, String> employeeMap = new HashMap<>();
 
-        // Load file from resources
-        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("EmployeeMapping.xlsx");
+        File mappingFolder = new File(mappingFilePath);
+        File[] mappingFiles = mappingFolder.listFiles();
 
-        if (inputStream == null) {
-            throw new RuntimeException("EmployeeMapping.xlsx not found in resources");
-        }
+        if (mappingFiles != null && mappingFiles.length == 1) {
+            try (InputStream mappingInputStream = new FileInputStream(mappingFiles[0])) {
+                Workbook workbook = new XSSFWorkbook(mappingInputStream);
+                Sheet mappingSheet = workbook.getSheet("Sheet1");
+                for (int i = 1; i <= mappingSheet.getLastRowNum(); i++) {
+                    Row row = mappingSheet.getRow(i);
 
-        Workbook workbook = new XSSFWorkbook(inputStream);
+                    // Skip empty rows
+                    if (row == null) continue;
 
-        Sheet mappingSheet = workbook.getSheet("Sheet1");
+                    // Assuming the first column (index 0) is the key and the second column (index 1) is the value
+                    Cell keyCell = row.getCell(2);
+                    Cell valueCell = row.getCell(3);
 
-        for (int i = 1; i <= mappingSheet.getLastRowNum(); i++) {
-            Row row = mappingSheet.getRow(i);
+                    // If both key and value cells are not null, add them to the map
+                    if (keyCell != null && valueCell != null) {
+                        String key = keyCell.getStringCellValue().toUpperCase();
+                        String value = valueCell.getStringCellValue().toUpperCase();
 
-            // Skip empty rows
-            if (row == null) continue;
-
-            // Assuming the first column (index 0) is the key and the second column (index 1) is the value
-            Cell keyCell = row.getCell(2);
-            Cell valueCell = row.getCell(3);
-
-            // If both key and value cells are not null, add them to the map
-            if (keyCell != null && valueCell != null) {
-                String key = keyCell.getStringCellValue().toUpperCase();
-                String value = valueCell.getStringCellValue().toUpperCase();
-
-                // Add to the Map
-                employeeMap.put(key, value);
+                        // Add to the Map
+                        employeeMap.put(key, value);
+                    }
+                }
+                workbook.close();
+            } catch (IOException e) {
+                System.out.println("Exception");
             }
         }
-
-        workbook.close();
-        inputStream.close();
         return employeeMap;
     }
 
